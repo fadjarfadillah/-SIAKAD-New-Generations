@@ -1,0 +1,1838 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  User, BookOpen, MapPin, Calendar, ArrowRight, Lock, Settings, 
+  LogOut, MessageSquare, Send, X, CheckCircle2, AlertTriangle, 
+  Compass, CreditCard, Edit3, Plus, ExternalLink, Menu, Bell, Info,
+  Trash2, PlusCircle, Shield, RefreshCw, Users, FileText
+} from 'lucide-react';
+
+const INITIAL_MAHASISWA = [
+  {
+    id: "m1",
+    nim: "2201010045",
+    nama: "Budi Santoso",
+    prodi: "Teknik Informatika",
+    fakultas: "Fakultas Ilmu Komputer",
+    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+    email: "budi.santoso@student.nextgen.ac.id",
+    phone: "0812-9876-5432",
+    address: "Jl. Tekno Boulevard No. 42, Batam",
+    spp_status: "LUNAS",
+    spp_nominal: "Rp 4.500.000",
+    spp_tanggal: "10 Februari 2026",
+    semester: "Semester Ganjil 2026",
+  },
+  {
+    id: "m2",
+    nim: "2201010099",
+    nama: "Siti Rahma",
+    prodi: "Sistem Informasi",
+    fakultas: "Fakultas Ilmu Komputer",
+    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150",
+    email: "siti.rahma@student.nextgen.ac.id",
+    phone: "0813-1122-3344",
+    address: "Komp. Nagoya Hill Blok B4, Batam",
+    spp_status: "BELUM LUNAS",
+    spp_nominal: "Rp 4.500.000",
+    spp_tanggal: "-",
+    semester: "Semester Ganjil 2026",
+  }
+];
+
+const INITIAL_DOSEN = [
+  {
+    id: "d1",
+    nidn: "0412088501",
+    nama: "Dr. Ir. Budi Raharjo, M.T.",
+    prodi: "Teknik Informatika",
+    avatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150",
+    email: "budi.raharjo@lecturer.nextgen.ac.id",
+    phone: "0857-1122-3344",
+  },
+  {
+    id: "d2",
+    nidn: "0412088502",
+    nama: "Prof. Retno Wahyuni, Ph.D.",
+    prodi: "Sistem Informasi",
+    avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150",
+    email: "retno.wahyuni@lecturer.nextgen.ac.id",
+    phone: "0812-9988-7766",
+  }
+];
+
+const INITIAL_NEWS = [
+  {
+    id: 1,
+    tag: "Prestasi",
+    title: "Tim Robotik Kampus Sabet Juara 1 Tingkat Nasional",
+    desc: "Inovasi robot pemadam kebakaran berbasis visi komputer berhasil mengeliminasi 50 universitas se-Indonesia.",
+    img: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=400",
+    likes: 245,
+  },
+  {
+    id: 2,
+    tag: "Inovasi",
+    title: "Kampus Luncurkan Program Pendanaan Startup Mahasiswa 2026",
+    desc: "Inkubator NextGen Ventures menyiapkan dana hibah total Rp 500 Juta untuk 10 proposal bisnis digital.",
+    img: "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=400",
+    likes: 189,
+  }
+];
+
+const INITIAL_EVENTS = [
+  {
+    id: "e1",
+    date: "25",
+    month: "Jun",
+    title: "Seminar Nasional: Penerapan AI di Industri Kreatif 2026",
+    location: "Aula Utama Gedung C",
+    registered: false
+  },
+  {
+    id: "e2",
+    date: "29",
+    month: "Jun",
+    title: "Kuliah Umum: Cybersecurity di Era Cloud Computing",
+    location: "Microsoft Teams Virtual Conference",
+    registered: false
+  }
+];
+
+const KNOWLEDGE_BASE_FAQ = [
+  { keywords: ["skripsi", "syarat skripsi", "sidang"], answer: "Syarat Sidang Skripsi: SKS minimal selesai 120 SKS, tidak ada nilai D atau E, lulus sertifikasi TOEFL minimal 450, bebas pinjaman perpustakaan, serta melunasi biaya administrasi semester berjalan." },
+  { keywords: ["kpm", "kpm hilang", "ktm hilang", "karta tanda"], answer: "Untuk urus KTM/KPM yang hilang: Mintalah Surat Pengantar Kehilangan dari BAAK Gedung Rektorat Lt. 1, bayar biaya cetak kartu Rp 25.000 di Bank Partner Kampus, lalu bawa bukti bayar serta pasfoto ke loket BAAK untuk cetak instan." },
+  { keywords: ["libur", "semester", "kalender"], answer: "Libur Semester Ganjil dijadwalkan mulai 1 Juli 2026 hingga 20 Agustus 2026. Registrasi & pengisian KRS semester genap dimulai pada 21 Agustus 2026." }
+];
+
+export default function App() {
+  // --- STATE DATABASE LIVE (DAPAT DIEDIT OLEH ADMIN) ---
+  const [mahasiswaList, setMahasiswaList] = useState(INITIAL_MAHASISWA);
+  const [dosenList, setDosenList] = useState(INITIAL_DOSEN);
+  const [newsList, setNewsList] = useState(INITIAL_NEWS);
+  const [eventsList, setEventsList] = useState(INITIAL_EVENTS);
+
+  // --- STATE AUTH & USER CORNER ---
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loginInput, setLoginInput] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [currentUser, setCurrentUser] = useState(null);
+  const [userRole, setUserRole] = useState(''); // 'mahasiswa', 'dosen', 'admin'
+  const [activeScreen, setActiveScreen] = useState('dashboard'); // 'dashboard', 'profile', 'attendance', 'events', 'admin-panel'
+
+  // --- ADMIN PANEL NAVIGATION SUB-TABS ---
+  const [adminTab, setAdminTab] = useState('students'); // 'students', 'lecturers', 'news', 'events'
+
+  // --- STATE UNTUK FORM EDIT/ADD (MAHASISWA & DOSEN OLEH ADMIN) ---
+  const [newStudent, setNewStudent] = useState({
+    nim: '', nama: '', prodi: '', fakultas: 'Fakultas Ilmu Komputer',
+    email: '', phone: '', address: '', spp_status: 'LUNAS',
+    spp_nominal: 'Rp 4.500.000', spp_tanggal: '10 Februari 2026', semester: 'Semester Ganjil 2026',
+    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'
+  });
+
+  const [newLecturer, setNewLecturer] = useState({
+    nidn: '', nama: '', prodi: '', email: '', phone: '',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150'
+  });
+
+  const [newNews, setNewNews] = useState({
+    tag: 'Prestasi', title: '', desc: '', likes: 10,
+    img: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=400'
+  });
+
+  const [newEvent, setNewEvent] = useState({
+    date: '20', month: 'Jul', title: '', location: '', registered: false
+  });
+
+  // --- STATE MAHASISWA PERSONAL PROFILE DATA EDIT (SELF) ---
+  const [tempProfileData, setTempProfileData] = useState(null);
+
+  // --- STATE ABSENSI (DOSEN & MAHASISWA CONFIG) ---
+  const [classConfig, setClassConfig] = useState({
+    mode: 'offline', 
+    pin: '7492',
+    teamsUrl: 'https://teams.microsoft.com/l/meetup-join/mock-session-12345',
+    matkul: 'Pemrograman Web II',
+    lecturerLat: -1.0234,
+    lecturerLng: 104.0123,
+    radiusLimit: 15,
+  });
+
+  const [studentInput, setStudentInput] = useState({
+    pin: '',
+    distance: 8,
+  });
+
+  const [attendanceResult, setAttendanceResult] = useState({
+    status: 'idle',
+    message: ''
+  });
+
+  const [attendanceTab, setAttendanceTab] = useState('dosen'); // 'dosen' atau 'mahasiswa'
+
+  // --- STATE CHAT AI COPILOT ---
+  const [aiChatOpen, setAiChatOpen] = useState(false);
+  const [chatInput, setChatInput] = useState('');
+  const [chatMessages, setChatMessages] = useState([
+    { sender: 'ai', text: 'Halo! Saya SIAKAD AI Copilot. Saya terhubung dengan database live akademik kampus. Tanyakan status SPP Anda, syarat skripsi, atau kontak resmi dosen/BAAK.' }
+  ]);
+
+  // --- STATE TOAST NOTIFICATION ---
+  const [toast, setToast] = useState(null);
+  const chatEndRef = useRef(null);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages]);
+
+  const handleLoginSubmit = (e) => {
+    if (e) e.preventDefault();
+    const input = loginInput.trim();
+
+    if (!input) {
+      setLoginError('Masukkan NIM, NIDN, atau ID Admin.');
+      return;
+    }
+
+    // 1. Cek Mahasiswa list
+    const foundStudent = mahasiswaList.find(m => m.nim === input);
+    // 2. Cek Dosen list
+    const foundLecturer = dosenList.find(d => d.nidn === input);
+
+    if (foundStudent) {
+      setCurrentUser(foundStudent);
+      setTempProfileData(foundStudent);
+      setUserRole('mahasiswa');
+      setIsLoggedIn(true);
+      setLoginError('');
+      showToast(`Selamat datang kembali, ${foundStudent.nama}!`);
+    } else if (foundLecturer) {
+      setCurrentUser(foundLecturer);
+      setUserRole('dosen');
+      setIsLoggedIn(true);
+      setLoginError('');
+      showToast(`Selamat datang, ${foundLecturer.nama}!`);
+    } else if (input.toLowerCase() === 'admin') {
+      setCurrentUser({
+        nama: "Super Admin SIAKAD",
+        avatar: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150",
+        role: "System Administrator"
+      });
+      setUserRole('admin');
+      setIsLoggedIn(true);
+      setLoginError('');
+      showToast('Login Administrator Berhasil!');
+    } else {
+      setLoginError('Kredensial tidak terdaftar. Gunakan tombol Demo Cepat di bawah.');
+    }
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setLoginInput('');
+    setUserRole('');
+    setCurrentUser(null);
+    setActiveScreen('dashboard');
+    showToast('Anda telah logout dengan aman.', 'info');
+  };
+
+  const handleProfileUpdateSubmit = (e) => {
+    e.preventDefault();
+    setMahasiswaList(prev => prev.map(m => m.id === tempProfileData.id ? tempProfileData : m));
+    setCurrentUser(tempProfileData);
+    showToast('Profil & data E-KTM Anda berhasil diperbarui!', 'success');
+  };
+
+  const handleStudentSubmitAttendance = (e) => {
+    e.preventDefault();
+    if (!studentInput.pin.trim()) {
+      showToast('Harap isi PIN Presensi!', 'error');
+      return;
+    }
+
+    if (studentInput.pin !== classConfig.pin) {
+      setAttendanceResult({ 
+        status: 'error', 
+        message: 'PIN Presensi salah! Pastikan Anda mendengar PIN verbal dari dosen di kelas.' 
+      });
+      showToast('Presensi Gagal: PIN Salah!', 'error');
+      return;
+    }
+
+    if (classConfig.mode === 'offline' && studentInput.distance > classConfig.radiusLimit) {
+      setAttendanceResult({ 
+        status: 'error', 
+        message: `Terdeteksi di luar radius geofence! Jarak Anda (${studentInput.distance}m) melebihi batas toleransi maksimal dosen (${classConfig.radiusLimit}m).` 
+      });
+      showToast('Gagal: Terlalu Jauh dari Dosen!', 'error');
+      return;
+    }
+
+    setAttendanceResult({ 
+      status: 'success', 
+      message: `Presensi Berhasil! Status Anda tercatat HADIR di mata kuliah ${classConfig.matkul}.` 
+    });
+    showToast('Presensi Sukses Tercatat!', 'success');
+  };
+
+  const handleRegisterEvent = (id) => {
+    setEventsList(prev => prev.map(evt => evt.id === id ? { ...evt, registered: !evt.registered } : evt));
+    const target = eventsList.find(evt => evt.id === id);
+    if (!target.registered) {
+      showToast('Berhasil mendaftar ke Event!', 'success');
+    } else {
+      showToast('Pendaftaran event dibatalkan.', 'info');
+    }
+  };
+
+  const handleAiSendMessage = (presetText) => {
+    const query = presetText || chatInput;
+    if (!query.trim()) return;
+
+    const newMsgs = [...chatMessages, { sender: 'user', text: query }];
+    setChatMessages(newMsgs);
+    if (!presetText) setChatInput('');
+
+    setTimeout(() => {
+      const lowerQuery = query.toLowerCase();
+      let reply = "";
+
+      // 1. CEK KEUANGAN (SPP) MAHASISWA LOGIN
+      if (lowerQuery.includes('spp') || lowerQuery.includes('tagihan') || lowerQuery.includes('keuangan') || lowerQuery.includes('bayar')) {
+        if (userRole === 'mahasiswa') {
+          // Cari data mahasiswa terbaru dari state live
+          const currentLiveUser = mahasiswaList.find(m => m.nim === currentUser.nim);
+          if (currentLiveUser) {
+            reply = `💡 **Status Keuangan Terverifikasi:**\n\nUntuk **${currentLiveUser.semester}**, tagihan SPP atas nama **${currentLiveUser.nama}** (${currentLiveUser.nim}) sebesar **${currentLiveUser.spp_nominal}** tercatat **${currentLiveUser.spp_status}** ${currentLiveUser.spp_status === 'LUNAS' ? `pada tanggal ${currentLiveUser.spp_tanggal}` : '(Harap segera lakukan pembayaran via bank mitra)'}.`;
+          } else {
+            reply = `Data akun Anda tidak ditemukan di database.`;
+          }
+        } else if (userRole === 'admin') {
+          reply = `🤖 Halo Admin! Anda berada dalam mode Administrator. Silakan gunakan panel kontrol Admin untuk melihat & mengedit seluruh status tagihan keuangan mahasiswa.`;
+        } else {
+          reply = `🤖 Akses Keuangan Ditolak! Informasi tagihan SPP bersifat sensitif dan hanya bisa diakses oleh akun mahasiswa bersangkutan setelah login.`;
+        }
+      } 
+      // 2. CEK KONTAK DOSEN
+      else if (lowerQuery.includes('dosen') || lowerQuery.includes('kontak') || lowerQuery.includes('nomor') || lowerQuery.includes('wa') || lowerQuery.includes('phone')) {
+        // Cari nama dosen di list dosen live
+        const foundDosen = dosenList.find(d => lowerQuery.includes(d.nama.toLowerCase()) || d.nama.toLowerCase().split(' ').some(word => word.length > 2 && lowerQuery.includes(word)));
+        
+        if (foundDosen) {
+          reply = `👨‍🏫 **Kontak Dosen Terdaftar:**\n\n**${foundDosen.nama}**\nProgram Studi: ${foundDosen.prodi}\nEmail: ${foundDosen.email}\nNo. WhatsApp: **${foundDosen.phone}**.\n\n*Harap hubungi dosen pada jam kerja operasional.*`;
+        } else if (lowerQuery.includes('baak')) {
+          reply = `🏛️ **Biro Administrasi Akademik & Kemahasiswaan (BAAK):**\n\nLayanan Whatsapp Utama: **0812-3456-7890** (Loket Utama Gedung Rektorat Lt. 1).`;
+        } else {
+          // List dosen yang ada
+          const allDosenNames = dosenList.map(d => d.nama).join("\n- ");
+          reply = `📞 **Direktori Dosen Kampus:**\n\nSiapa dosen yang ingin Anda cari? Saat ini terdaftar:\n- ${allDosenNames}\n\nAtau hubungi BAAK di **0812-3456-7890**.`;
+        }
+      } 
+      // 3. CEK BERITA TERBARU
+      else if (lowerQuery.includes('berita') || lowerQuery.includes('info') || lowerQuery.includes('kabar')) {
+        const topNews = newsList.map(n => `• [${n.tag}] ${n.title}`).join("\n");
+        reply = `📰 **Berita Utama Terkini Kampus:**\n\n${topNews}\n\nSilakan scroll ke bawah di beranda utama untuk membaca berita selengkapnya!`;
+      }
+      // 4. CEK FAQ
+      else {
+        const foundFaq = KNOWLEDGE_BASE_FAQ.find(f => f.keywords.some(k => lowerQuery.includes(k)));
+        if (foundFaq) {
+          reply = `📝 **Informasi Helpdesk:**\n\n${foundFaq.answer}`;
+        } else {
+          reply = `🤖 Maaf, saya tidak menemukan jawaban spesifik. Anda bisa menanyakan:\n- *"Apakah SPP saya sudah lunas?"*\n- *"Minta nomor WA dosen [Nama Dosen]"*\n- *"Syarat pengajuan skripsi"*\n- *"Bagaimana jika KTM hilang?"*`;
+        }
+      }
+
+      setChatMessages(prev => [...prev, { sender: 'ai', text: reply }]);
+    }, 600);
+  };
+
+  const handleAddStudent = (e) => {
+    e.preventDefault();
+    if (!newStudent.nim || !newStudent.nama || !newStudent.prodi) {
+      showToast('Harap lengkapi formulir tambah mahasiswa!', 'error');
+      return;
+    }
+    const student = { ...newStudent, id: 'm_' + Date.now() };
+    setMahasiswaList(prev => [...prev, student]);
+    showToast(`Mahasiswa ${newStudent.nama} berhasil didaftarkan!`);
+    setNewStudent({
+      nim: '', nama: '', prodi: '', fakultas: 'Fakultas Ilmu Komputer',
+      email: '', phone: '', address: '', spp_status: 'LUNAS',
+      spp_nominal: 'Rp 4.500.000', spp_tanggal: '10 Februari 2026', semester: 'Semester Ganjil 2026',
+      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'
+    });
+  };
+
+  const handleDeleteStudent = (id) => {
+    setMahasiswaList(prev => prev.filter(m => m.id !== id));
+    showToast('Data Mahasiswa dihapus.', 'info');
+  };
+
+  const handleAddLecturer = (e) => {
+    e.preventDefault();
+    if (!newLecturer.nidn || !newLecturer.nama || !newLecturer.prodi) {
+      showToast('Harap lengkapi formulir tambah dosen!', 'error');
+      return;
+    }
+    const lecturer = { ...newLecturer, id: 'd_' + Date.now() };
+    setDosenList(prev => [...prev, lecturer]);
+    showToast(`Dosen ${newLecturer.nama} berhasil terdaftar!`);
+    setNewLecturer({
+      nidn: '', nama: '', prodi: '', email: '', phone: '',
+      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150'
+    });
+  };
+
+  const handleDeleteLecturer = (id) => {
+    setDosenList(prev => prev.filter(d => d.id !== id));
+    showToast('Data Dosen dihapus.', 'info');
+  };
+
+  const handleAddNews = (e) => {
+    e.preventDefault();
+    if (!newNews.title || !newNews.desc) {
+      showToast('Harap lengkapi data berita!', 'error');
+      return;
+    }
+    const news = { ...newNews, id: Date.now() };
+    setNewsList(prev => [news, ...prev]);
+    showToast('Berita baru berhasil diterbitkan!');
+    setNewNews({
+      tag: 'Prestasi', title: '', desc: '', likes: 10,
+      img: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=400'
+    });
+  };
+
+  const handleDeleteNews = (id) => {
+    setNewsList(prev => prev.filter(n => n.id !== id));
+    showToast('Berita berhasil dihapus.', 'info');
+  };
+
+  const handleAddEvent = (e) => {
+    e.preventDefault();
+    if (!newEvent.title || !newEvent.location) {
+      showToast('Harap lengkapi data event!', 'error');
+      return;
+    }
+    const event = { ...newEvent, id: 'e_' + Date.now() };
+    setEventsList(prev => [...prev, event]);
+    showToast('Agenda event baru diterbitkan!');
+    setNewEvent({
+      date: '20', month: 'Jul', title: '', location: '', registered: false
+    });
+  };
+
+  const handleDeleteEvent = (id) => {
+    setEventsList(prev => prev.filter(e => e.id !== id));
+    showToast('Event berhasil dihapus.', 'info');
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans antialiased pb-20 md:pb-0 md:pl-64">
+      
+      {/* Dynamic Styled Layout Effects */}
+      <style>{`
+        @keyframes gradientBG {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        .animated-gradient {
+          background: linear-gradient(-45deg, #090d16, #16122d, #1f1b40, #2f1259, #020617);
+          background-size: 400% 400%;
+          animation: gradientBG 15s ease infinite;
+        }
+        .glass-card {
+          background: rgba(15, 23, 42, 0.4);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-ktm {
+          background: linear-gradient(135deg, rgba(79, 70, 229, 0.5), rgba(147, 51, 234, 0.35));
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        .radar-pulse {
+          position: relative;
+        }
+        .radar-pulse::before {
+          content: '';
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          border-radius: 50%;
+          background: rgba(99, 102, 241, 0.15);
+          animation: pulseRadar 3s linear infinite;
+        }
+        @keyframes pulseRadar {
+          0% { transform: scale(1); opacity: 1; }
+          100% { transform: scale(2.5); opacity: 0; }
+        }
+      `}</style>
+
+      {/* Sleek Alert Banner Toast */}
+      {toast && (
+        <div className={`fixed top-5 right-5 z-[100] px-5 py-3.5 rounded-2xl text-xs font-bold shadow-2xl border transition-all duration-300 animate-bounce flex items-center gap-3 ${
+          toast.type === 'success' 
+            ? 'bg-emerald-950/90 border-emerald-500 text-emerald-300' 
+            : 'bg-rose-950/90 border-rose-500 text-rose-300'
+        }`}>
+          <span className="w-2.5 h-2.5 rounded-full bg-current animate-ping"></span>
+          {toast.message}
+        </div>
+      )}
+
+      {/* ================= UNIFIED LOGIN GATE ================= */}
+      {!isLoggedIn ? (
+        <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-6 relative overflow-hidden">
+          {/* Neon Orb background decorations */}
+          <div className="absolute top-[-20%] left-[-20%] w-[500px] h-[500px] bg-indigo-600/20 blur-[130px] rounded-full"></div>
+          <div className="absolute bottom-[-20%] right-[-20%] w-[500px] h-[500px] bg-purple-600/20 blur-[130px] rounded-full"></div>
+
+          <div className="w-full max-w-md bg-slate-900/80 border border-slate-800 rounded-3xl p-8 shadow-2xl relative z-10 backdrop-blur-md">
+            <div className="text-center mb-8">
+              <div className="inline-flex bg-gradient-to-tr from-indigo-600 to-purple-600 p-4 rounded-2xl mb-4 shadow-lg shadow-indigo-500/30">
+                <BookOpen className="w-8 h-8 text-white" />
+              </div>
+              <h1 className="text-2xl font-black text-white tracking-tight uppercase">SIAKAD NEXT-GEN</h1>
+              <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mt-1">Unified Authentication System</p>
+            </div>
+
+            <form onSubmit={handleLoginSubmit} className="space-y-4">
+              <div>
+                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1">NIM / NIDN / ADMIN ID</label>
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input 
+                    type="text" 
+                    value={loginInput} 
+                    onChange={(e) => setLoginInput(e.target.value)}
+                    placeholder="Masukkan Kredensial..."
+                    className="w-full bg-slate-950 border border-slate-850 text-white rounded-xl pl-12 pr-4 py-3.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition font-mono"
+                  />
+                </div>
+              </div>
+
+              {loginError && (
+                <div className="p-3 bg-rose-950/30 border border-rose-500/20 rounded-xl flex items-center gap-2 animate-pulse">
+                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <p className="text-rose-400 text-[11px] font-medium leading-tight">{loginError}</p>
+                </div>
+              )}
+
+              <button className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 py-3.5 rounded-xl font-bold text-sm tracking-wide shadow-lg shadow-indigo-600/20 hover:shadow-indigo-500/30 transition duration-150">
+                Otentikasi & Masuk Portal
+              </button>
+            </form>
+
+            <div className="mt-8 pt-6 border-t border-slate-800/60">
+              <p className="text-[10px] text-slate-400 font-bold uppercase text-center mb-3 tracking-widest">Akses Demo Cepat (Quick Fill)</p>
+              <div className="grid grid-cols-3 gap-2">
+                <button 
+                  onClick={() => { setLoginInput('2201010045'); setLoginError(''); }} 
+                  className="bg-slate-950 hover:bg-slate-900 text-[10px] font-bold py-2 px-1 rounded-lg border border-slate-850 text-indigo-400 hover:border-indigo-500 transition"
+                >
+                  🎓 Mahasiswa
+                </button>
+                <button 
+                  onClick={() => { setLoginInput('0412088501'); setLoginError(''); }} 
+                  className="bg-slate-950 hover:bg-slate-900 text-[10px] font-bold py-2 px-1 rounded-lg border border-slate-850 text-purple-400 hover:border-purple-500 transition"
+                >
+                  👨‍🏫 Dosen
+                </button>
+                <button 
+                  onClick={() => { setLoginInput('admin'); setLoginError(''); }} 
+                  className="bg-slate-950 hover:bg-slate-900 text-[10px] font-bold py-2 px-1 rounded-lg border border-slate-850 text-slate-300 hover:border-slate-400 transition"
+                >
+                  ⚙️ Admin
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* ================= PREMIUM MAIN APPLICATION ================= */
+        <div className="animate-fade-in">
+          
+          {/* ================= SIDEBAR (DESKTOP) ================= */}
+          <aside className="hidden md:flex flex-col fixed top-0 left-0 h-full w-64 bg-slate-950 text-white p-6 border-r border-slate-900 z-50 justify-between">
+            <div className="space-y-8">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center font-bold text-lg tracking-wider shadow-lg shadow-indigo-500/30">
+                  S
+                </div>
+                <div>
+                  <span className="text-sm font-black tracking-widest text-indigo-400 block leading-none">SIAKAD NEXT</span>
+                  <span className="text-[9px] text-slate-500 font-semibold tracking-wider uppercase mt-1">Generations v3</span>
+                </div>
+              </div>
+              
+              <nav className="flex flex-col gap-1 text-sm">
+                <button 
+                  onClick={() => setActiveScreen('dashboard')} 
+                  className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition text-xs font-bold border ${
+                    activeScreen === 'dashboard' 
+                      ? 'bg-indigo-600/10 text-indigo-400 border-indigo-500/20' 
+                      : 'text-slate-400 border-transparent hover:text-white hover:bg-slate-900/50'
+                  }`}
+                >
+                  <BookOpen className="w-4 h-4" /> Dashboard
+                </button>
+
+                {userRole === 'mahasiswa' && (
+                  <button 
+                    onClick={() => { setActiveScreen('profile'); }} 
+                    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition text-xs font-bold border ${
+                      activeScreen === 'profile' 
+                        ? 'bg-indigo-600/10 text-indigo-400 border-indigo-500/20' 
+                        : 'text-slate-400 border-transparent hover:text-white hover:bg-slate-900/50'
+                    }`}
+                  >
+                    <CreditCard className="w-4 h-4" /> KTM & Profil
+                  </button>
+                )}
+
+                <button 
+                  onClick={() => setActiveScreen('attendance')} 
+                  className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition text-xs font-bold border ${
+                    activeScreen === 'attendance' 
+                      ? 'bg-indigo-600/10 text-indigo-400 border-indigo-500/20' 
+                      : 'text-slate-400 border-transparent hover:text-white hover:bg-slate-900/50'
+                  }`}
+                >
+                  <MapPin className="w-4 h-4" /> Absensi Kelas
+                </button>
+
+                <button 
+                  onClick={() => setActiveScreen('events')} 
+                  className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition text-xs font-bold border ${
+                    activeScreen === 'events' 
+                      ? 'bg-indigo-600/10 text-indigo-400 border-indigo-500/20' 
+                      : 'text-slate-400 border-transparent hover:text-white hover:bg-slate-900/50'
+                  }`}
+                >
+                  <Calendar className="w-4 h-4" /> Event Kampus
+                </button>
+
+                {/* EXCLUSIVE ROLE: ADMINISTRATOR TAB */}
+                {userRole === 'admin' && (
+                  <button 
+                    onClick={() => setActiveScreen('admin-panel')} 
+                    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition text-xs font-bold border ${
+                      activeScreen === 'admin-panel' 
+                        ? 'bg-rose-600/10 text-rose-400 border-rose-500/20' 
+                        : 'text-slate-400 border-transparent hover:text-white hover:bg-slate-900/50'
+                    }`}
+                  >
+                    <Shield className="w-4 h-4" /> Admin Console
+                  </button>
+                )}
+              </nav>
+            </div>
+
+            {/* Current User Info Card & Logout */}
+            <div className="pt-6 border-t border-slate-900 space-y-4">
+              <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-900/40">
+                <img src={currentUser?.avatar} className="w-9 h-9 rounded-xl object-cover ring-2 ring-indigo-500/20" alt="Avatar" />
+                <div className="overflow-hidden">
+                  <p className="text-xs font-bold text-white truncate">{currentUser?.nama}</p>
+                  <p className="text-[9px] text-slate-500 font-mono uppercase tracking-wider">{userRole}</p>
+                </div>
+              </div>
+              <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold text-rose-500 hover:bg-rose-950/20 transition">
+                <LogOut className="w-4 h-4" /> Logout
+              </button>
+            </div>
+          </aside>
+
+          {/* ================= MAIN CONTENT CONTAINER ================= */}
+          <main className="max-w-7xl mx-auto min-h-screen">
+            
+            {/* 1. HERO SECTION WITH VIDEO BACKGROUND & FLOATING MASCOT */}
+            {activeScreen === 'dashboard' && (
+              <section className="relative h-[60vh] md:h-[45vh] animated-gradient flex items-center px-6 md:px-12 overflow-hidden border-b border-slate-900">
+                {/* Simulated Visual background Campus */}
+                <div className="absolute inset-0 opacity-25 pointer-events-none mix-blend-overlay">
+                  <img src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=1200" className="w-full h-full object-cover" alt="Campus Life" />
+                </div>
+                
+                {/* News Ticker Bar */}
+                <div className="absolute top-4 left-6 right-6 md:left-12 md:right-12 z-20 bg-slate-900/60 border border-slate-800 backdrop-blur rounded-xl px-4 py-2 flex items-center gap-3">
+                  <span className="bg-rose-500 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded tracking-widest flex items-center gap-1 shrink-0 animate-pulse">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span> Live Broadcast
+                  </span>
+                  <div className="overflow-hidden relative w-full">
+                    <p className="text-xs text-slate-300 font-semibold truncate animate-pulse">
+                      📢 Info: KRS Diperpanjang s/d 20 Agustus 2026. Gunakan SIAKAD AI Copilot untuk menanyakan status validasi keuangan & kontak dosen Anda secara instan.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="relative z-10 max-w-2xl mt-8">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 uppercase tracking-widest">
+                    <Info className="w-3.5 h-3.5" /> Next-Generations Portal
+                  </span>
+                  <h1 className="text-3xl md:text-5xl font-black tracking-tight text-white mt-4 leading-tight">
+                    Selamat Datang di <br />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">SIAKAD Next-Gen System</span>
+                  </h1>
+                  <p className="text-xs md:text-sm text-slate-300 mt-4 font-normal leading-relaxed max-w-xl">
+                    Sistem Manajemen Akademis Tercanggih dengan Validasi GPS Geofence Dosen-Mahasiswa, Bypass Otomatis Kuliah Online, Dashboard Administrasi Live, serta integrasi AI Copilot.
+                  </p>
+                </div>
+                
+                {/* Interactive Mascot Astronaut / Campus Robot Floating */}
+                <div className="hidden lg:flex absolute right-16 top-1/2 -translate-y-1/2 w-64 h-64 bg-indigo-500/10 border border-indigo-500/20 rounded-full items-center justify-center animate-pulse">
+                  <div className="text-center">
+                    <span className="text-7xl block animate-bounce" style={{ animationDuration: '3s' }}>👨‍🚀</span>
+                    <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-2 block">AI Mascot Online</span>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* 2. SCROLL DOWN CONTENT: CORE AREA */}
+            <div className="p-4 md:p-8">
+              
+              {/* ================= DASHBOARD SCREEN ================= */}
+              {activeScreen === 'dashboard' && (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  
+                  {/* LEFT & CENTER PANEL: PORTAL BERITA & AGENDA */}
+                  <div className="lg:col-span-2 space-y-8 animate-fade-in">
+                    
+                    {/* PORTAL BERITA KAMPUS (POPULER) */}
+                    <section>
+                      <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-base font-black tracking-wider text-white uppercase flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 bg-amber-500 rounded-full animate-ping"></span>
+                          📰 Berita Terpopuler Kampus
+                        </h2>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        {newsList.map(news => (
+                          <div key={news.id} className="bg-slate-900 border border-slate-800/80 rounded-2xl overflow-hidden group hover:border-indigo-500/50 transition duration-300">
+                            <div className="h-44 overflow-hidden relative">
+                              <img src={news.img} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt={news.title} />
+                              <div className="absolute top-3 left-3 bg-indigo-600 text-white text-[9px] font-black uppercase px-2.5 py-1 rounded-lg">
+                                {news.tag}
+                              </div>
+                            </div>
+                            <div className="p-5">
+                              <h3 className="text-sm font-bold text-white leading-snug group-hover:text-indigo-400 transition">
+                                {news.title}
+                              </h3>
+                              <p className="text-xs text-slate-400 mt-2 line-clamp-2">
+                                {news.desc}
+                              </p>
+                              <div className="mt-4 pt-4 border-t border-slate-800/60 flex justify-between items-center text-[10px] text-slate-500">
+                                <span>💡 Kampus News Update</span>
+                                <span className="text-indigo-400 font-bold">♥ {news.likes} Menyukai</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+
+                    {/* JADWAL AGENDA, SEMINAR & EVENT */}
+                    <section>
+                      <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-base font-black tracking-wider text-white uppercase">
+                          📅 Agenda & Kuliah Umum
+                        </h2>
+                      </div>
+                      <div className="flex flex-col gap-3">
+                        {eventsList.map(evt => (
+                          <div key={evt.id} className="bg-slate-900 border border-slate-800/80 p-4 rounded-2xl flex justify-between items-center group hover:bg-slate-800/30 transition">
+                            <div className="flex gap-4 items-center">
+                              <div className="bg-indigo-600/10 text-indigo-400 border border-indigo-500/20 w-12 h-12 rounded-xl flex flex-col items-center justify-center text-center font-bold shrink-0">
+                                <span className="text-xs leading-none">{evt.date}</span>
+                                <span className="text-[9px] uppercase mt-0.5">{evt.month}</span>
+                              </div>
+                              <div>
+                                <h4 className="text-xs md:text-sm font-bold text-slate-200 group-hover:text-indigo-400 transition line-clamp-1">{evt.title}</h4>
+                                <p className="text-[11px] text-slate-500 mt-0.5">📍 {evt.location}</p>
+                              </div>
+                            </div>
+                            <button 
+                              onClick={() => handleRegisterEvent(evt.id)}
+                              className={`text-[10px] font-black px-4 py-2.5 rounded-xl transition shadow-md whitespace-nowrap ${
+                                evt.registered 
+                                  ? 'bg-emerald-950 border border-emerald-500/30 text-emerald-400' 
+                                  : 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                              }`}
+                            >
+                              {evt.registered ? '✓ Terdaftar' : 'Daftar Sekarang'}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  </div>
+
+                  {/* RIGHT PANEL: KTM DIGITAL & QUICK ACTIONS */}
+                  <div className="space-y-8 animate-fade-in">
+                    
+                    {/* KTM DIGITAL GLASSMORPHISM CARD */}
+                    <div>
+                      <h2 className="text-base font-black tracking-wider text-white uppercase mb-6">
+                        💳 KTM Digital Anda
+                      </h2>
+                      
+                      {userRole === 'mahasiswa' ? (
+                        <div className="space-y-4">
+                          {/* E-KTM CARD */}
+                          <div className="relative w-full h-56 rounded-3xl p-6 overflow-hidden text-white shadow-2xl glass-ktm group">
+                            {/* Card Chip & Logo */}
+                            <div className="flex justify-between items-start mb-6">
+                              {/* Gold Sim Chip simulation */}
+                              <div className="w-10 h-8 bg-gradient-to-tr from-yellow-500 to-amber-300 rounded-lg border border-yellow-400/50 shadow-inner"></div>
+                              <span className="text-[10px] font-black tracking-widest text-white/95">UNIVERSITAS NEXT GEN</span>
+                            </div>
+                            
+                            {/* Card Details */}
+                            <div className="flex gap-4 items-center">
+                              <div className="w-16 h-20 bg-slate-950 border border-white/20 rounded-xl overflow-hidden shrink-0">
+                                <img src={currentUser.avatar} className="w-full h-full object-cover" alt="KTM Pic" />
+                              </div>
+                              <div className="overflow-hidden">
+                                <p className="text-base font-black tracking-wide leading-none truncate">{currentUser.nama}</p>
+                                <p className="text-xs text-indigo-200 font-mono mt-1">NIM: {currentUser.nim}</p>
+                                <p className="text-[9px] text-white/70 mt-3 font-light truncate">{currentUser.fakultas}</p>
+                                <p className="text-[9px] text-white/70 font-light truncate">{currentUser.prodi} (S1)</p>
+                              </div>
+                            </div>
+
+                            {/* Watermark QR Code area */}
+                            <div className="absolute bottom-5 right-5 bg-white p-1 rounded-lg opacity-90 shadow-md">
+                              <div className="w-10 h-10 bg-slate-900 flex flex-wrap p-1">
+                                <div className="w-1/2 h-1/2 bg-white border-2 border-black"></div>
+                                <div className="w-1/2 h-1/2 bg-black"></div>
+                                <div className="w-1/2 h-1/2 bg-black"></div>
+                                <div className="w-1/2 h-1/2 bg-white border-2 border-black"></div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Action update profile */}
+                          <button 
+                            onClick={() => { setActiveScreen('profile'); }}
+                            className="w-full bg-slate-900 hover:bg-slate-850 border border-slate-800 font-bold py-3.5 text-xs rounded-2xl transition flex items-center justify-center gap-2 text-indigo-400 hover:text-indigo-300"
+                          >
+                            <Edit3 className="w-4 h-4" /> Edit Profil & Data Diri
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="p-6 bg-slate-900 border border-slate-850 rounded-3xl text-center text-slate-500 text-xs">
+                          {userRole === 'admin' ? (
+                            <p>Anda masuk sebagai <strong>Admin</strong>. Kelola database mahasiswa dan dosen via panel <strong>Admin Console</strong>.</p>
+                          ) : (
+                            <p>Anda masuk sebagai <strong>Dosen</strong>. Kelola kelas di simulator absensi.</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* QUICK PRESENCE SHORTCARD */}
+                    <div className="bg-slate-900 border border-slate-850 rounded-3xl p-6 space-y-4">
+                      <h3 className="font-bold text-sm text-slate-200">📍 Validasi Presensi Baru</h3>
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        Sistem mendeteksi Geofencing GPS Dosen-Mahasiswa secara presisi atau bypass langsung kelas Microsoft Teams.
+                      </p>
+                      <button 
+                        onClick={() => setActiveScreen('attendance')}
+                        className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-3 rounded-xl transition flex items-center justify-center gap-1.5"
+                      >
+                        Buka Simulator Absensi <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                  </div>
+                </div>
+              )}
+
+              {/* ================= PROFIL & EDIT DATA SCREEN ================= */}
+              {activeScreen === 'profile' && userRole === 'mahasiswa' && (
+                <div className="space-y-8 animate-fade-in">
+                  <div>
+                    <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Pengaturan Mandiri</span>
+                    <h1 className="text-2xl font-black text-white mt-1">E-KTM & Informasi Profil</h1>
+                  </div>
+
+                  <div className="grid lg:grid-cols-12 gap-8">
+                    {/* EDIT FORM CONTAINER */}
+                    <div className="lg:col-span-7 bg-slate-900 border border-slate-850 rounded-3xl p-6 md:p-8">
+                      <h3 className="text-sm font-black uppercase tracking-widest text-indigo-400 mb-6 flex items-center gap-2">
+                        <Edit3 className="w-4 h-4" /> Edit Profil Terverifikasi
+                      </h3>
+
+                      <form onSubmit={handleProfileUpdateSubmit} className="space-y-4">
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Nama Lengkap</label>
+                            <input 
+                              type="text" 
+                              value={tempProfileData?.nama || ''} 
+                              onChange={e => setTempProfileData({...tempProfileData, nama: e.target.value})} 
+                              className="w-full bg-slate-950 border border-slate-850 p-3 rounded-xl text-xs outline-none focus:border-indigo-500 text-white font-semibold"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Avatar / Link Foto</label>
+                            <input 
+                              type="text" 
+                              value={tempProfileData?.avatar || ''} 
+                              onChange={e => setTempProfileData({...tempProfileData, avatar: e.target.value})} 
+                              className="w-full bg-slate-950 border border-slate-850 p-3 rounded-xl text-xs outline-none focus:border-indigo-500 text-white font-mono"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Nomor WhatsApp</label>
+                            <input 
+                              type="text" 
+                              value={tempProfileData?.phone || ''} 
+                              onChange={e => setTempProfileData({...tempProfileData, phone: e.target.value})} 
+                              className="w-full bg-slate-950 border border-slate-850 p-3 rounded-xl text-xs outline-none focus:border-indigo-500 text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Email Pribadi</label>
+                            <input 
+                              type="text" 
+                              value={tempProfileData?.email || ''} 
+                              onChange={e => setTempProfileData({...tempProfileData, email: e.target.value})} 
+                              className="w-full bg-slate-950 border border-slate-850 p-3 rounded-xl text-xs outline-none focus:border-indigo-500 text-white"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Alamat Domisili</label>
+                          <input 
+                            type="text" 
+                            value={tempProfileData?.address || ''} 
+                            onChange={e => setTempProfileData({...tempProfileData, address: e.target.value})} 
+                            className="w-full bg-slate-950 border border-slate-850 p-3 rounded-xl text-xs outline-none focus:border-indigo-500 text-white"
+                          />
+                        </div>
+
+                        <div className="pt-4 border-t border-slate-800/60 flex justify-end gap-3">
+                          <button 
+                            type="button" 
+                            onClick={() => { setTempProfileData(currentUser); showToast('Perubahan dibatalkan.', 'info'); }}
+                            className="bg-slate-950 border border-slate-850 font-bold py-2.5 px-6 text-xs rounded-xl hover:text-white transition"
+                          >
+                            Reset
+                          </button>
+                          <button 
+                            type="submit"
+                            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 px-6 text-xs rounded-xl shadow-lg shadow-indigo-600/20 transition"
+                          >
+                            Simpan Perubahan
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+
+                    {/* KTM PREVIEW CONTAINER */}
+                    <div className="lg:col-span-5 flex flex-col items-center justify-center p-6 bg-slate-900/50 border border-slate-850 rounded-3xl">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-6 block">Holographic Card Preview</span>
+                      
+                      {/* E-KTM DIGITAL COMPONENT */}
+                      <div className="relative w-full max-w-sm h-56 rounded-3xl p-6 overflow-hidden text-white shadow-2xl glass-ktm group transform hover:-translate-y-1 transition duration-300">
+                        <div className="flex justify-between items-start mb-6">
+                          <div className="w-10 h-8 bg-gradient-to-tr from-yellow-500 to-amber-300 rounded-lg border border-yellow-400/50 shadow-inner"></div>
+                          <span className="text-[10px] font-black tracking-widest text-white/95">UNIVERSITAS NEXT GEN</span>
+                        </div>
+                        
+                        <div className="flex gap-4 items-center">
+                          <div className="w-16 h-20 bg-slate-950 border border-white/20 rounded-xl overflow-hidden shrink-0">
+                            <img src={tempProfileData?.avatar} className="w-full h-full object-cover" alt="Profile Preview" />
+                          </div>
+                          <div className="overflow-hidden">
+                            <p className="text-base font-black tracking-wide leading-none truncate">{tempProfileData?.nama || 'Silakan Isi Nama'}</p>
+                            <p className="text-xs text-indigo-200 font-mono mt-1">NIM: {tempProfileData?.nim}</p>
+                            <p className="text-[9px] text-white/70 mt-3 font-light truncate">{tempProfileData?.fakultas}</p>
+                            <p className="text-[9px] text-white/70 font-light truncate">{tempProfileData?.prodi} (S1)</p>
+                          </div>
+                        </div>
+
+                        {/* QR Code */}
+                        <div className="absolute bottom-5 right-5 bg-white p-1 rounded-lg opacity-90 shadow">
+                          <div className="w-10 h-10 bg-slate-900 flex flex-wrap p-1">
+                            <div className="w-1/2 h-1/2 bg-white border-2 border-black"></div>
+                            <div className="w-1/2 h-1/2 bg-black"></div>
+                            <div className="w-1/2 h-1/2 bg-black"></div>
+                            <div className="w-1/2 h-1/2 bg-white border-2 border-black"></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 text-center max-w-xs space-y-2">
+                        <p className="text-[11px] text-slate-400">
+                          Kartu digital terenkripsi SHA-256 untuk gerbang RFID perpustakaan & loker absensi fisik kampus.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ================= ABSENSI SIMULATOR SCREEN ================= */}
+              {activeScreen === 'attendance' && (
+                <div className="space-y-8 animate-fade-in">
+                  <div>
+                    <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Simulator Terpadu</span>
+                    <h1 className="text-2xl font-black text-white mt-1">Presensi Cerdas (Geofencing vs Online)</h1>
+                  </div>
+
+                  <div className="bg-slate-900 border border-slate-850 rounded-3xl overflow-hidden grid lg:grid-cols-12 shadow-2xl">
+                    
+                    {/* LEFT SYSTEM TOGGLER */}
+                    <div className="lg:col-span-4 bg-slate-950/40 p-6 border-b lg:border-b-0 lg:border-r border-slate-850 space-y-6">
+                      <div>
+                        <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest block mb-1">Aktor Simulator</span>
+                        <p className="text-xs text-slate-400 leading-relaxed">Pilih peran penguji untuk mensimulasikan gerbang absensi.</p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+                        <button 
+                          onClick={() => setAttendanceTab('dosen')} 
+                          className={`py-2 px-3 rounded-lg text-xs font-bold transition ${attendanceTab === 'dosen' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                        >
+                          👨‍🏫 Sisi Dosen
+                        </button>
+                        <button 
+                          onClick={() => setAttendanceTab('mahasiswa')} 
+                          className={`py-2 px-3 rounded-lg text-xs font-bold transition ${attendanceTab === 'mahasiswa' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                        >
+                          🎓 Sisi Mahasiswa
+                        </button>
+                      </div>
+
+                      <div className="p-4 bg-indigo-950/20 border border-indigo-500/15 rounded-2xl text-xs text-indigo-300 leading-relaxed space-y-2">
+                        <p className="font-bold flex items-center gap-1">💡 Cara Melakukan Uji Coba:</p>
+                        <p>1. Di tab <strong>Dosen</strong>, pilih metode kuliah (Online atau Offline) & catat PIN Verbal.</p>
+                        <p>2. Di tab <strong>Mahasiswa</strong>, isi PIN verbal, geser slide jarak GPS (di mode Offline) & kirim untuk verifikasi.</p>
+                      </div>
+                    </div>
+
+                    {/* RIGHT WORKPLACE */}
+                    <div className="lg:col-span-8 p-6 md:p-8">
+                      
+                      {/* ACTOR: DOSEN WORKSPACE */}
+                      {attendanceTab === 'dosen' ? (
+                        <div className="space-y-6 animate-fade-in">
+                          <div className="flex justify-between items-center pb-4 border-b border-slate-800">
+                            <h3 className="text-base font-bold text-white flex items-center gap-2">👨‍🏫 Panel Kontrol Sesi Dosen</h3>
+                            <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[9px] font-bold px-2.5 py-1 rounded-full uppercase">Dosen Aktif</span>
+                          </div>
+
+                          <div className="grid sm:grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Mata Kuliah Diajar</label>
+                              <select 
+                                value={classConfig.matkul} 
+                                onChange={e => setClassConfig({...classConfig, matkul: e.target.value})}
+                                className="w-full bg-slate-950 border border-slate-850 p-3 rounded-xl text-xs outline-none text-white focus:border-indigo-500 font-semibold"
+                              >
+                                {dosenList.map((d, i) => (
+                                  <option key={i} value={d.prodi}>{d.prodi} - {d.nama}</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1.5">Metode Perkuliahan</label>
+                              <div className="flex gap-2">
+                                <button 
+                                  onClick={() => { setClassConfig({...classConfig, mode:'offline'}); showToast('Mode Kuliah Tatap Muka Aktif!', 'info'); }} 
+                                  className={`flex-1 p-2.5 rounded-xl text-xs font-bold border transition ${
+                                    classConfig.mode === 'offline' 
+                                      ? 'border-emerald-500 text-emerald-400 bg-emerald-950/20' 
+                                      : 'border-slate-800 hover:border-slate-700 text-slate-400'
+                                  }`}
+                                >
+                                  📍 Offline (Tatap Muka)
+                                </button>
+                                <button 
+                                  onClick={() => { setClassConfig({...classConfig, mode:'online'}); showToast('Mode Kuliah Online (MS Teams) Aktif!', 'info'); }} 
+                                  className={`flex-1 p-2.5 rounded-xl text-xs font-bold border transition ${
+                                    classConfig.mode === 'online' 
+                                      ? 'border-blue-500 text-blue-400 bg-blue-950/20' 
+                                      : 'border-slate-800 hover:border-slate-700 text-slate-400'
+                                  }`}
+                                >
+                                  🌐 Online (MS Teams)
+                                </button>
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">PIN Verbal Dosen</label>
+                              <input 
+                                type="text" 
+                                value={classConfig.pin} 
+                                onChange={e => setClassConfig({...classConfig, pin: e.target.value})} 
+                                className="w-full bg-slate-950 border border-slate-850 p-3 rounded-xl text-xs font-mono text-center text-white font-bold tracking-widest focus:border-indigo-500"
+                              />
+                            </div>
+
+                            {/* CONDITIONAL COMPONENT (OFFLINE VS ONLINE AT DOSEN SIDE) */}
+                            {classConfig.mode === 'offline' ? (
+                              <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-850 space-y-3">
+                                <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest block">🛡️ GPS Target Lock</span>
+                                <div className="text-[10px] font-mono text-slate-400 space-y-1">
+                                  <p>Latitude: {classConfig.lecturerLat}</p>
+                                  <p>Longitude: {classConfig.lecturerLng}</p>
+                                </div>
+                                <div>
+                                  <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Radius Toleransi: {classConfig.radiusLimit} Meter</label>
+                                  <input 
+                                    type="range" 
+                                    min="5" 
+                                    max="50" 
+                                    value={classConfig.radiusLimit} 
+                                    onChange={e => setClassConfig({...classConfig, radiusLimit: parseInt(e.target.value)})} 
+                                    className="w-full accent-indigo-500"
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-850 space-y-2">
+                                <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest block">🔗 URL Microsoft Teams Sesi</span>
+                                <input 
+                                  type="text" 
+                                  value={classConfig.teamsUrl} 
+                                  onChange={e => setClassConfig({...classConfig, teamsUrl: e.target.value})} 
+                                  className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-[10px] text-blue-300 font-mono focus:border-indigo-500"
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="pt-4 border-t border-slate-800/60 flex justify-end">
+                            <button 
+                              onClick={() => { setAttendanceTab('mahasiswa'); showToast('Konfigurasi dosen diterapkan! Uji sisi mahasiswa.', 'success'); }}
+                              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-3 px-6 rounded-xl transition shadow-lg shadow-indigo-600/10"
+                            >
+                              Terapkan & Lompat ke Sisi Mahasiswa
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        /* ACTOR: MAHASISWA WORKSPACE */
+                        <div className="space-y-6 animate-fade-in">
+                          <div className="flex justify-between items-center pb-4 border-b border-slate-800">
+                            <h3 className="text-base font-bold text-white flex items-center gap-2">🎓 Portal Presensi Mahasiswa</h3>
+                            <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-bold px-2.5 py-1 rounded-full uppercase">Mahasiswa Aktif</span>
+                          </div>
+
+                          {/* DYNAMIC MS TEAMS PORTAL */}
+                          {classConfig.mode === 'online' && (
+                            <div className="bg-blue-950/30 border border-blue-500/30 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 animate-fade-in">
+                              <div>
+                                <p className="text-xs font-bold text-blue-400 uppercase tracking-wider">Metode Kuliah: Online</p>
+                                <p className="text-xs text-slate-300 mt-0.5">Silakan bergabung ke kelas virtual melalui Microsoft Teams.</p>
+                              </div>
+                              <a 
+                                href={classConfig.teamsUrl} 
+                                target="_blank" 
+                                rel="noreferrer" 
+                                className="bg-[#464EB8] hover:bg-[#3b429f] text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 transition whitespace-nowrap shadow-md"
+                              >
+                                <ExternalLink className="w-4 h-4" /> Masuk MS Teams
+                              </a>
+                            </div>
+                          )}
+
+                          <div className="grid sm:grid-cols-2 gap-6">
+                            <div className="p-5 bg-slate-950/60 border border-slate-850 rounded-2xl space-y-4">
+                              <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest block">Konfirmasi Kehadiran</span>
+                              <div>
+                                <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Input PIN Verbal Dosen</label>
+                                <input 
+                                  type="text" 
+                                  value={studentInput.pin} 
+                                  onChange={e => setStudentInput({...studentInput, pin: e.target.value})} 
+                                  placeholder="Contoh: 7492"
+                                  className="w-full bg-slate-900 border border-slate-800 p-3.5 rounded-xl text-center text-lg font-mono font-bold tracking-widest text-white focus:border-indigo-500"
+                                />
+                              </div>
+                              <button 
+                                onClick={handleStudentSubmitAttendance}
+                                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 text-xs rounded-xl transition"
+                              >
+                                Kirim Kehadiran
+                              </button>
+                            </div>
+
+                            {/* OFFLINE GEOFENCE SIMULATION RADAR */}
+                            {classConfig.mode === 'offline' ? (
+                              <div className="p-5 bg-slate-950/60 border border-slate-850 rounded-2xl space-y-4 flex flex-col justify-between">
+                                <div className="space-y-1">
+                                  <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest block">Simulasi Deteksi Jarak GPS</span>
+                                  <p className="text-[11px] text-slate-400">Geser slider untuk menguji geofencing.</p>
+                                </div>
+                                
+                                <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 text-center relative overflow-hidden flex flex-col justify-center items-center">
+                                  <div className={`w-3 h-3 rounded-full mb-1 ${studentInput.distance <= classConfig.radiusLimit ? 'bg-emerald-400' : 'bg-rose-400'} animate-ping`}></div>
+                                  <p className={`text-2xl font-black font-mono ${studentInput.distance <= classConfig.radiusLimit ? 'text-emerald-400' : 'text-rose-500'}`}>
+                                    {studentInput.distance} Meter
+                                  </p>
+                                  <p className="text-[10px] text-slate-500 mt-1">Batas radius: {classConfig.radiusLimit}m</p>
+                                </div>
+
+                                <div>
+                                  <input 
+                                    type="range" 
+                                    min="2" 
+                                    max="35" 
+                                    value={studentInput.distance} 
+                                    onChange={e => setStudentInput({...studentInput, distance: parseInt(e.target.value)})} 
+                                    className="w-full accent-indigo-500"
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="p-5 bg-slate-950/40 border border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center">
+                                <Compass className="w-10 h-10 text-slate-600 mb-2 animate-spin" style={{ animationDuration: '6s' }} />
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Bypass GPS Aktif</span>
+                                <p className="text-[11px] text-slate-500 max-w-[200px] mt-1 leading-snug">Sesi online mengabaikan koordinat GPS. Presensi sah dari lokasi mana pun.</p>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* RESULT MESSAGE */}
+                          {attendanceResult.status !== 'idle' && (
+                            <div className={`p-4 rounded-xl border text-xs flex items-start gap-3 ${
+                              attendanceResult.status === 'success' 
+                                ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-300' 
+                                : 'bg-rose-950/30 border-rose-500/30 text-rose-300'
+                            }`}>
+                              {attendanceResult.status === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" /> : <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />}
+                              <p className="leading-tight">{attendanceResult.message}</p>
+                            </div>
+                          )}
+
+                        </div>
+                      )}
+
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ================= AGENDA & EVENTS SCREEN ================= */}
+              {activeScreen === 'events' && (
+                <div className="space-y-8 animate-fade-in">
+                  <div>
+                    <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Aktivitas Mahasiswa</span>
+                    <h1 className="text-2xl font-black text-white mt-1">Event & Seminar Kampus</h1>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {eventsList.map(evt => (
+                      <div key={evt.id} className="bg-slate-900 border border-slate-850 p-6 rounded-3xl flex flex-col justify-between items-start gap-6 group hover:border-indigo-500/30 transition duration-300">
+                        <div className="flex gap-5 items-start">
+                          <div className="w-12 h-12 bg-indigo-600/10 border border-indigo-500/20 rounded-xl flex flex-col items-center justify-center font-bold text-indigo-400 shrink-0 mt-1">
+                            <span className="text-sm leading-none">{evt.date}</span>
+                            <span className="text-[9px] uppercase">{evt.month}</span>
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-bold text-slate-200 group-hover:text-indigo-400 transition-colors line-clamp-2">{evt.title}</h3>
+                            <p className="text-[11px] text-slate-500 mt-2 flex items-center gap-1">📍 {evt.location}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="w-full pt-4 border-t border-slate-800/60 flex justify-between items-center">
+                          <span className="text-[10px] text-indigo-400 font-semibold uppercase">Disponsori BAAK</span>
+                          <button 
+                            onClick={() => handleRegisterEvent(evt.id)} 
+                            className={`text-[10px] font-bold px-4 py-2 rounded-xl transition ${
+                              evt.registered 
+                                ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/30' 
+                                : 'bg-indigo-600 text-white hover:bg-indigo-500'
+                            }`}
+                          >
+                            {evt.registered ? '✓ Terdaftar' : 'Daftar Event'}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ================= COMPREHENSIVE ADMIN CONTROL PANEL ================= */}
+              {activeScreen === 'admin-panel' && userRole === 'admin' && (
+                <div className="space-y-8 animate-fade-in">
+                  <div>
+                    <span className="text-xs font-bold text-rose-500 uppercase tracking-widest">Global Admin Console</span>
+                    <h1 className="text-2xl font-black text-white mt-1">SIAKAD Live Database Management</h1>
+                    <p className="text-xs text-slate-400 mt-1">Ubah atau tambahkan data secara real-time. Seluruh perubahan akan langsung mensinkronisasi data portal dashboard & otak AI Copilot.</p>
+                  </div>
+
+                  {/* ADMIN TABS CONTROLLER */}
+                  <div className="flex gap-2 border-b border-slate-800 pb-3">
+                    <button 
+                      onClick={() => setAdminTab('students')} 
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${adminTab === 'students' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                    >
+                      <Users className="w-4 h-4" /> Mahasiswa ({mahasiswaList.length})
+                    </button>
+                    <button 
+                      onClick={() => setAdminTab('lecturers')} 
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${adminTab === 'lecturers' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                    >
+                      <User className="w-4 h-4" /> Dosen ({dosenList.length})
+                    </button>
+                    <button 
+                      onClick={() => setAdminTab('news')} 
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${adminTab === 'news' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                    >
+                      <FileText className="w-4 h-4" /> Berita ({newsList.length})
+                    </button>
+                    <button 
+                      onClick={() => setAdminTab('events')} 
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${adminTab === 'events' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                    >
+                      <Calendar className="w-4 h-4" /> Event ({eventsList.length})
+                    </button>
+                  </div>
+
+                  {/* SUBTAB 1: STUDENTS MANAGEMENT */}
+                  {adminTab === 'students' && (
+                    <div className="grid lg:grid-cols-12 gap-8">
+                      {/* ADD STUDENT FORM */}
+                      <div className="lg:col-span-5 bg-slate-900 border border-slate-800 p-6 rounded-3xl h-fit space-y-4">
+                        <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                          <PlusCircle className="w-4.5 h-4.5 text-indigo-400" /> Daftarkan Mahasiswa Baru
+                        </h3>
+                        <form onSubmit={handleAddStudent} className="space-y-3">
+                          <div>
+                            <label className="text-[10px] text-slate-400 block mb-1">NIM</label>
+                            <input 
+                              type="text" 
+                              placeholder="Contoh: 2201010045" 
+                              value={newStudent.nim} 
+                              onChange={e => setNewStudent({...newStudent, nim: e.target.value})}
+                              className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs font-mono text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-slate-400 block mb-1">Nama Mahasiswa</label>
+                            <input 
+                              type="text" 
+                              placeholder="Nama Lengkap" 
+                              value={newStudent.nama} 
+                              onChange={e => setNewStudent({...newStudent, nama: e.target.value})}
+                              className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-slate-400 block mb-1">Program Studi</label>
+                            <input 
+                              type="text" 
+                              placeholder="S1 Teknik Informatika" 
+                              value={newStudent.prodi} 
+                              onChange={e => setNewStudent({...newStudent, prodi: e.target.value})}
+                              className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs text-white"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[10px] text-slate-400 block mb-1">Status Keuangan SPP</label>
+                              <select 
+                                value={newStudent.spp_status} 
+                                onChange={e => setNewStudent({...newStudent, spp_status: e.target.value})}
+                                className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-[11px] text-white"
+                              >
+                                <option value="LUNAS">LUNAS</option>
+                                <option value="BELUM LUNAS">BELUM LUNAS</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-slate-400 block mb-1">Tanggal Bayar</label>
+                              <input 
+                                type="text" 
+                                placeholder="10 Feb 2026 / -" 
+                                value={newStudent.spp_tanggal} 
+                                onChange={e => setNewStudent({...newStudent, spp_tanggal: e.target.value})}
+                                className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs text-white"
+                              />
+                            </div>
+                          </div>
+                          <button 
+                            type="submit" 
+                            className="w-full bg-indigo-600 hover:bg-indigo-500 py-2.5 rounded-xl text-xs font-bold text-white shadow-lg transition"
+                          >
+                            Simpan Mahasiswa ke Sistem
+                          </button>
+                        </form>
+                      </div>
+
+                      {/* STUDENTS LIST TABLE */}
+                      <div className="lg:col-span-7 bg-slate-900 border border-slate-800 p-6 rounded-3xl overflow-x-auto">
+                        <h3 className="text-sm font-bold text-white mb-4">Daftar Mahasiswa Terdaftar</h3>
+                        <table className="w-full text-xs text-left text-slate-300">
+                          <thead className="bg-slate-950 text-slate-400 uppercase text-[10px]">
+                            <tr>
+                              <th className="p-3">Mahasiswa</th>
+                              <th className="p-3">NIM / Prodi</th>
+                              <th className="p-3 text-center">SPP Status</th>
+                              <th className="p-3 text-center">Aksi</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {mahasiswaList.map(m => (
+                              <tr key={m.id} className="border-b border-slate-850 hover:bg-slate-850/40">
+                                <td className="p-3 flex items-center gap-2">
+                                  <img src={m.avatar} className="w-8 h-8 rounded-full object-cover" alt="avatar" />
+                                  <span className="font-bold text-slate-100">{m.nama}</span>
+                                </td>
+                                <td className="p-3">
+                                  <p className="font-mono">{m.nim}</p>
+                                  <p className="text-slate-500 text-[11px]">{m.prodi}</p>
+                                </td>
+                                <td className="p-3 text-center">
+                                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${m.spp_status === 'LUNAS' ? 'bg-emerald-950/80 text-emerald-400' : 'bg-rose-950/80 text-rose-400'}`}>
+                                    {m.spp_status}
+                                  </span>
+                                </td>
+                                <td className="p-3 text-center">
+                                  <button 
+                                    onClick={() => handleDeleteStudent(m.id)} 
+                                    className="text-rose-500 hover:text-rose-400 p-1.5 bg-rose-950/20 rounded-lg"
+                                    title="Hapus"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SUBTAB 2: LECTURERS MANAGEMENT */}
+                  {adminTab === 'lecturers' && (
+                    <div className="grid lg:grid-cols-12 gap-8">
+                      {/* ADD DOSEN FORM */}
+                      <div className="lg:col-span-5 bg-slate-900 border border-slate-800 p-6 rounded-3xl h-fit space-y-4">
+                        <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                          <PlusCircle className="w-4.5 h-4.5 text-indigo-400" /> Daftarkan Dosen Baru
+                        </h3>
+                        <form onSubmit={handleAddLecturer} className="space-y-3">
+                          <div>
+                            <label className="text-[10px] text-slate-400 block mb-1">NIDN</label>
+                            <input 
+                              type="text" 
+                              placeholder="NIDN Dosen" 
+                              value={newLecturer.nidn} 
+                              onChange={e => setNewLecturer({...newLecturer, nidn: e.target.value})}
+                              className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs font-mono text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-slate-400 block mb-1">Nama Dosen & Gelar</label>
+                            <input 
+                              type="text" 
+                              placeholder="Contoh: Dr. Ir. Budi Raharjo, M.T." 
+                              value={newLecturer.nama} 
+                              onChange={e => setNewLecturer({...newLecturer, nama: e.target.value})}
+                              className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-slate-400 block mb-1">Mata Kuliah / Prodi</label>
+                            <input 
+                              type="text" 
+                              placeholder="Teknik Informatika" 
+                              value={newLecturer.prodi} 
+                              onChange={e => setNewLecturer({...newLecturer, prodi: e.target.value})}
+                              className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs text-white"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[10px] text-slate-400 block mb-1">No. WhatsApp</label>
+                              <input 
+                                type="text" 
+                                placeholder="0857-XXXX-XXXX" 
+                                value={newLecturer.phone} 
+                                onChange={e => setNewLecturer({...newLecturer, phone: e.target.value})}
+                                className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs text-white"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-slate-400 block mb-1">Email</label>
+                              <input 
+                                type="email" 
+                                placeholder="lecturer@mail.ac.id" 
+                                value={newLecturer.email} 
+                                onChange={e => setNewLecturer({...newLecturer, email: e.target.value})}
+                                className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs text-white"
+                              />
+                            </div>
+                          </div>
+                          <button 
+                            type="submit" 
+                            className="w-full bg-indigo-600 hover:bg-indigo-500 py-2.5 rounded-xl text-xs font-bold text-white shadow-lg transition"
+                          >
+                            Simpan Dosen Baru
+                          </button>
+                        </form>
+                      </div>
+
+                      {/* LECTURERS LIST TABLE */}
+                      <div className="lg:col-span-7 bg-slate-900 border border-slate-800 p-6 rounded-3xl overflow-x-auto">
+                        <h3 className="text-sm font-bold text-white mb-4">Daftar Staff Pengajar</h3>
+                        <table className="w-full text-xs text-left text-slate-300">
+                          <thead className="bg-slate-950 text-slate-400 uppercase text-[10px]">
+                            <tr>
+                              <th className="p-3">Dosen</th>
+                              <th className="p-3">NIDN / Prodi</th>
+                              <th className="p-3">No. WhatsApp</th>
+                              <th className="p-3 text-center">Aksi</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {dosenList.map(d => (
+                              <tr key={d.id} className="border-b border-slate-850 hover:bg-slate-850/40">
+                                <td className="p-3 flex items-center gap-2">
+                                  <img src={d.avatar} className="w-8 h-8 rounded-full object-cover" alt="avatar" />
+                                  <span className="font-bold text-slate-100">{d.nama}</span>
+                                </td>
+                                <td className="p-3">
+                                  <p className="font-mono">{d.nidn}</p>
+                                  <p className="text-slate-500 text-[11px]">{d.prodi}</p>
+                                </td>
+                                <td className="p-3 font-mono text-emerald-400">{d.phone}</td>
+                                <td className="p-3 text-center">
+                                  <button 
+                                    onClick={() => handleDeleteLecturer(d.id)} 
+                                    className="text-rose-500 hover:text-rose-400 p-1.5 bg-rose-950/20 rounded-lg"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SUBTAB 3: NEWS MANAGEMENT */}
+                  {adminTab === 'news' && (
+                    <div className="grid lg:grid-cols-12 gap-8">
+                      {/* ADD NEWS FORM */}
+                      <div className="lg:col-span-5 bg-slate-900 border border-slate-800 p-6 rounded-3xl h-fit space-y-4">
+                        <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                          <PlusCircle className="w-4.5 h-4.5 text-indigo-400" /> Terbitkan Berita Kampus
+                        </h3>
+                        <form onSubmit={handleAddNews} className="space-y-3">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[10px] text-slate-400 block mb-1">Tag Kategori</label>
+                              <select 
+                                value={newNews.tag} 
+                                onChange={e => setNewNews({...newNews, tag: e.target.value})}
+                                className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs text-white"
+                              >
+                                <option value="Prestasi">Prestasi</option>
+                                <option value="Inovasi">Inovasi</option>
+                                <option value="Akademik">Akademik</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-slate-400 block mb-1">Likes Awal</label>
+                              <input 
+                                type="number" 
+                                value={newNews.likes} 
+                                onChange={e => setNewNews({...newNews, likes: parseInt(e.target.value)})}
+                                className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs text-white"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-slate-400 block mb-1">Judul Berita Utama</label>
+                            <input 
+                              type="text" 
+                              placeholder="Masukkan judul menarik..." 
+                              value={newNews.title} 
+                              onChange={e => setNewNews({...newNews, title: e.target.value})}
+                              className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-slate-400 block mb-1">Isi Singkat Berita</label>
+                            <textarea 
+                              placeholder="Tuliskan berita..." 
+                              value={newNews.desc} 
+                              onChange={e => setNewNews({...newNews, desc: e.target.value})}
+                              className="w-full h-24 bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs text-white"
+                            />
+                          </div>
+                          <button 
+                            type="submit" 
+                            className="w-full bg-indigo-600 hover:bg-indigo-500 py-2.5 rounded-xl text-xs font-bold text-white shadow-lg transition"
+                          >
+                            Terbitkan Artikel Berita
+                          </button>
+                        </form>
+                      </div>
+
+                      {/* NEWS LIST VIEW */}
+                      <div className="lg:col-span-7 bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4">
+                        <h3 className="text-sm font-bold text-white">Artikel Berita Terbit</h3>
+                        <div className="grid sm:grid-cols-2 gap-4 max-h-[450px] overflow-y-auto pr-2">
+                          {newsList.map(n => (
+                            <div key={n.id} className="bg-slate-950 p-4 border border-slate-850 rounded-2xl flex flex-col justify-between">
+                              <div>
+                                <span className="bg-indigo-900/40 text-indigo-400 text-[9px] font-black px-2 py-0.5 rounded uppercase">{n.tag}</span>
+                                <h4 className="text-xs font-bold text-slate-200 mt-2 line-clamp-2">{n.title}</h4>
+                                <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">{n.desc}</p>
+                              </div>
+                              <div className="flex justify-between items-center mt-4 pt-3 border-t border-slate-900">
+                                <span className="text-[10px] text-indigo-400">♥ {n.likes} Likes</span>
+                                <button 
+                                  onClick={() => handleDeleteNews(n.id)} 
+                                  className="text-rose-500 hover:text-rose-400 p-1 bg-rose-950/20 rounded"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SUBTAB 4: EVENTS MANAGEMENT */}
+                  {adminTab === 'events' && (
+                    <div className="grid lg:grid-cols-12 gap-8">
+                      {/* ADD EVENT FORM */}
+                      <div className="lg:col-span-5 bg-slate-900 border border-slate-800 p-6 rounded-3xl h-fit space-y-4">
+                        <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                          <PlusCircle className="w-4.5 h-4.5 text-indigo-400" /> Terbitkan Agenda Baru
+                        </h3>
+                        <form onSubmit={handleAddEvent} className="space-y-3">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[10px] text-slate-400 block mb-1">Tanggal Hari (Angka)</label>
+                              <input 
+                                type="text" 
+                                placeholder="Contoh: 15" 
+                                value={newEvent.date} 
+                                onChange={e => setNewEvent({...newEvent, date: e.target.value})}
+                                className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs text-white"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-slate-400 block mb-1">Bulan (Singkatan)</label>
+                              <input 
+                                type="text" 
+                                placeholder="Contoh: Ags" 
+                                value={newEvent.month} 
+                                onChange={e => setNewEvent({...newEvent, month: e.target.value})}
+                                className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs text-white"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-slate-400 block mb-1">Judul Seminar / Agenda</label>
+                            <input 
+                              type="text" 
+                              placeholder="Nama Kuliah Umum / Seminar" 
+                              value={newEvent.title} 
+                              onChange={e => setNewEvent({...newEvent, title: e.target.value})}
+                              className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-slate-400 block mb-1">Lokasi Sesi</label>
+                            <input 
+                              type="text" 
+                              placeholder="Aula Rektorat / Zoom" 
+                              value={newEvent.location} 
+                              onChange={e => setNewEvent({...newEvent, location: e.target.value})}
+                              className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs text-white"
+                            />
+                          </div>
+                          <button 
+                            type="submit" 
+                            className="w-full bg-indigo-600 hover:bg-indigo-500 py-2.5 rounded-xl text-xs font-bold text-white shadow-lg transition"
+                          >
+                            Posting Agenda Kuliah Umum
+                          </button>
+                        </form>
+                      </div>
+
+                      {/* EVENTS LIST VIEW */}
+                      <div className="lg:col-span-7 bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4">
+                        <h3 className="text-sm font-bold text-white">List Event Kampus</h3>
+                        <div className="space-y-2 max-h-[450px] overflow-y-auto pr-2">
+                          {eventsList.map(e => (
+                            <div key={e.id} className="bg-slate-950 p-4 border border-slate-850 rounded-2xl flex justify-between items-center">
+                              <div className="flex gap-4 items-center">
+                                <div className="bg-indigo-600/10 text-indigo-400 w-11 h-11 rounded-xl flex flex-col items-center justify-center font-bold font-mono">
+                                  <span className="text-xs leading-none">{e.date}</span>
+                                  <span className="text-[8px] uppercase">{e.month}</span>
+                                </div>
+                                <div>
+                                  <h4 className="text-xs font-bold text-slate-200 line-clamp-1">{e.title}</h4>
+                                  <p className="text-[10px] text-slate-500">📍 {e.location}</p>
+                                </div>
+                              </div>
+                              <button 
+                                onClick={() => handleDeleteEvent(e.id)} 
+                                className="text-rose-500 hover:text-rose-400 p-2 bg-rose-950/20 rounded-xl"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+              )}
+
+            </div>
+          </main>
+
+          {/* ================= BOTTOM NAVIGATION (MOBILE) ================= */}
+          <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-950 border-t border-slate-900 px-6 py-2.5 flex justify-between items-center shadow-2xl z-50">
+            <button 
+              onClick={() => setActiveScreen('dashboard')} 
+              className={`flex flex-col items-center gap-0.5 ${activeScreen === 'dashboard' ? 'text-indigo-400' : 'text-slate-500'}`}
+            >
+              <BookOpen className="w-4 h-4" />
+              <span className="text-[9px] font-bold">Home</span>
+            </button>
+            {userRole === 'mahasiswa' && (
+              <button 
+                onClick={() => { setActiveScreen('profile'); }} 
+                className={`flex flex-col items-center gap-0.5 ${activeScreen === 'profile' ? 'text-indigo-400' : 'text-slate-500'}`}
+              >
+                <CreditCard className="w-4 h-4" />
+                <span className="text-[9px] font-bold">KTM</span>
+              </button>
+            )}
+            <button 
+              onClick={() => setActiveScreen('attendance')} 
+              className={`flex flex-col items-center gap-0.5 ${activeScreen === 'attendance' ? 'text-indigo-400' : 'text-slate-500'}`}
+            >
+              <MapPin className="w-4 h-4" />
+              <span className="text-[9px] font-bold">Absen</span>
+            </button>
+            <button 
+              onClick={() => { setAiChatOpen(true); showToast('SIAKAD AI Copilot diaktifkan!', 'success'); }} 
+              className="flex flex-col items-center gap-0.5 text-slate-500 hover:text-white"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span className="text-[9px] font-bold">AI Copilot</span>
+            </button>
+          </nav>
+
+          {/* ================= FLOATING WIDGET: SIAKAD AI COPILOT ================= */}
+          <div className="fixed bottom-6 right-6 z-50">
+            {!aiChatOpen ? (
+              <button 
+                onClick={() => setAiChatOpen(true)} 
+                className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-full p-4 shadow-xl flex items-center justify-center gap-2 transition transform hover:scale-105 active:scale-95 animate-bounce"
+              >
+                <span className="text-xl">🤖</span>
+                <span className="text-xs font-bold pr-1 hidden sm:inline">AI Copilot</span>
+              </button>
+            ) : (
+              <div className="w-80 sm:w-96 bg-slate-900 border border-slate-850 rounded-3xl shadow-2xl z-50 flex flex-col overflow-hidden transition-all transform origin-bottom-right">
+                
+                {/* Header Chat */}
+                <div className="bg-indigo-950 text-white p-4 flex justify-between items-center border-b border-slate-850/60">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center font-bold">🤖</div>
+                    <div>
+                      <p className="text-xs font-bold">SIAKAD AI Copilot</p>
+                      <p className="text-[9px] text-indigo-400">Online • Siap membantu</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setAiChatOpen(false)} className="text-slate-400 hover:text-white transition">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                
+                {/* Area Chat */}
+                <div className="p-4 h-72 overflow-y-auto flex flex-col gap-3 bg-slate-950 text-[11px] leading-relaxed">
+                  {chatMessages.map((m, i) => (
+                    <div 
+                      key={i} 
+                      className={`p-3 rounded-2xl max-w-[85%] ${
+                        m.sender === 'user' 
+                          ? 'bg-indigo-600 text-white ml-auto rounded-tr-none shadow-md' 
+                          : 'bg-slate-900 text-slate-200 mr-auto rounded-tl-none border border-slate-800'
+                      }`}
+                    >
+                      <p className="whitespace-pre-line">{m.text}</p>
+                    </div>
+                  ))}
+                  <div ref={chatEndRef}></div>
+                </div>
+
+                {/* Quick action presets inside the chat popup */}
+                <div className="px-3 py-2 bg-slate-950 border-t border-slate-900 flex gap-1.5 flex-wrap">
+                  <button onClick={() => handleAiSendMessage("Apakah SPP saya sudah lunas?")} className="bg-slate-900 hover:bg-slate-850 border border-slate-800 text-[10px] text-indigo-400 font-bold px-2 py-1 rounded-lg">💰 Status SPP</button>
+                  <button onClick={() => handleAiSendMessage("Minta nomor WA dosen")} className="bg-slate-900 hover:bg-slate-850 border border-slate-800 text-[10px] text-indigo-400 font-bold px-2 py-1 rounded-lg">📞 Kontak Dosen</button>
+                  <button onClick={() => handleAiSendMessage("Bagaimana syarat daftar skripsi?")} className="bg-slate-900 hover:bg-slate-850 border border-slate-800 text-[10px] text-indigo-400 font-bold px-2 py-1 rounded-lg">📝 Info Skripsi</button>
+                  <button onClick={() => handleAiSendMessage("Ada info berita terbaru?")} className="bg-slate-900 hover:bg-slate-850 border border-slate-800 text-[10px] text-indigo-400 font-bold px-2 py-1 rounded-lg">📰 Berita Terbaru</button>
+                </div>
+
+                {/* Input Chat */}
+                <div className="p-3 border-t border-slate-850 flex gap-2 bg-slate-900">
+                  <input 
+                    type="text" 
+                    value={chatInput} 
+                    onChange={e => setChatInput(e.target.value)} 
+                    onKeyDown={e => e.key === 'Enter' && handleAiSendMessage()}
+                    placeholder="Tanya AI seputar tagihan SPP, syarat skripsi..." 
+                    className="w-full bg-slate-950 border border-slate-850 text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 text-white font-medium"
+                  />
+                  <button onClick={() => handleAiSendMessage()} className="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 rounded-xl transition flex items-center justify-center">
+                    <Send className="w-4.5 h-4.5" />
+                  </button>
+                </div>
+
+              </div>
+            )}
+          </div>
+
+        </div>
+      )}
+
+    </div>
+  );
+}
